@@ -1,4 +1,5 @@
 import { JSDOM } from "jsdom";
+import * as uuid from "uuid";
 import webpack from "webpack";
 
 const DOM_TO_SVG = require.resolve("./dom-to-svg.ts");
@@ -17,6 +18,25 @@ export function createSvg(context: { document: Document }): Node {
   return context.document.createElement("svg");
 }
 
+export async function browser<T>(cb: (el: HTMLElement) => Promise<T>): Promise<T> {
+  const id = `id-${uuid.v4()}`;
+
+  await page.evaluate((id) => {
+    const div = document.createElement("div");
+    div.setAttribute("id", id);
+    document.body.appendChild(div);
+  }, id);
+
+  const el = await page.$(`#${id}`);
+  const result = await page.evaluate(cb, el);
+
+  if (el) {
+    await el.dispose();
+  }
+
+  return result;
+}
+
 export function bundle(): Promise<string> {
   return new Promise((resolve, reject) => {
     const compiler = webpack({
@@ -27,7 +47,17 @@ export function bundle(): Promise<string> {
         extensions: [".ts", ".js"]
       },
       module: {
-        rules: [{ test: /\.ts?$/, loader: "ts-loader" }]
+        rules: [
+          {
+            test: /\.ts?$/,
+            use: {
+              loader: "ts-loader",
+              options: {
+                transpileOnly: true
+              }
+            }
+          }
+        ]
       },
       output: {
         filename: "dom-to-svg.js",

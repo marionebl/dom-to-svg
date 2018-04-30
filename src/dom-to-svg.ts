@@ -1,6 +1,11 @@
 // import { matchText } from './match-text';
 import { NodeType } from "./node";
 
+export interface BrowserContext {
+  document: Document;
+  window: Window;
+}
+
 export interface Context {
   document: Document;
   element?: HTMLElement;
@@ -20,6 +25,20 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
     svg.setAttribute("height", String(height));
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
+    const bg = document.createElement("rect");
+
+    bg.setAttribute("width", String(width));
+    bg.setAttribute("height", String(height));
+
+    bg.setAttribute("x", String(0));
+    bg.setAttribute("y", String(0));
+
+    bg.setAttribute("fill", "rgb(255, 255, 255)");
+
+    bg.setAttribute("id", "document-background");
+    bg.setAttribute("data-background", "document");
+
+    svg.appendChild(bg);
     context.svg = svg;
   }
 
@@ -32,6 +51,11 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
       const styles = window.getComputedStyle(inputElement);
 
       const group = document.createElement("g");
+      const name = inputElement.tagName.toLowerCase();
+
+      group.setAttribute("id", name);
+      group.setAttribute("data-id", name);
+
       context.element.appendChild(group);
       context.element = group;
 
@@ -44,11 +68,12 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
         background.setAttribute("x", String(inputElement.offsetLeft));
         background.setAttribute("y", String(inputElement.offsetTop));
 
-        const defaultBackground = inputElement.tagName === "BODY"
-          ? "#fffff"
-          : "transparent";
+        const backgroundColor = styles.backgroundColor || "rgba(0, 0, 0, 0)";
 
-        background.setAttribute("fill", styles.backgroundColor || defaultBackground);
+        background.setAttribute("fill", backgroundColor);
+
+        background.setAttribute("id", `${name}-background`);
+        background.setAttribute("data-background", name);
 
         group.appendChild(background);
       }
@@ -63,13 +88,26 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
         break;
       }
 
-      const text = document.createElement("text");
-      text.setAttribute("x", String(parent.offsetLeft));
-      text.setAttribute("y", String(parent.offsetTop));
-      text.setAttribute("alignment-baseline", "hanging");
+      const styles = window.getComputedStyle(parent);
+      const lineHeight = getLineHeight(styles, context);
 
-      context.element.appendChild(text);
-      text.textContent = node.textContent;
+      const container = document.createElement("text");
+      container.setAttribute("x", String(parent.offsetLeft));
+      container.setAttribute("y", String(parent.offsetTop));
+
+      container.style.fontFamily = styles.getPropertyValue("font-family");
+      container.style.fontSize = styles.getPropertyValue("font-size");
+      container.style.fontWeight = styles.getPropertyValue("font-weight");
+
+      getLines(node).forEach(line => {
+        const span = document.createElement("tspan");
+        span.textContent = line.text;
+        span.setAttribute("x", String(line.rect.left));
+        span.setAttribute("y", String(line.rect.top + lineHeight / 2));
+        container.appendChild(span);
+      });
+
+      context.element.appendChild(container);
     }
   }
 
@@ -81,4 +119,51 @@ function walk(node: Node, predicate: (node: Node) => void): void {
   for (let i = 0; i < node.childNodes.length; ++i) {
     predicate(node.childNodes[i]);
   }
+}
+
+function getLineHeight(styles: CSSStyleDeclaration, context: BrowserContext): number {
+  const raw = styles.getPropertyValue("line-height");
+
+  if (raw === "normal") {
+    const fontSize = styles.getPropertyValue("font-size");
+    return cssValueToNumber(fontSize) * 1.61;
+  }
+
+  return cssValueToNumber(raw);
+}
+
+interface Line {
+  text: string;
+  rect: ClientRect;
+}
+
+function getLines(node: Node): Line[] {
+  let index = 0;
+
+  const range: Range = document.createRange();
+  range.selectNodeContents(node);
+
+  const lines: Line[] = [];
+
+  range.toString().split(" ").forEach(word => {
+    const wordRange = document.createRange();
+    wordRange.setStart(node, index);
+    wordRange.setEnd(node, index + word.length);
+    index += word.length;
+    const rect = wordRange.getBoundingClientRect();
+
+    const line = lines[lines.length - 1];
+
+    if (!line || rect.top > line.rect.top) {
+      lines.push({ text: word, rect });
+    } else {
+      line.text += ` ${word}`;
+    }
+  });
+
+  return lines;
+}
+
+function cssValueToNumber(raw: string): number {
+  return parseFloat(raw.replace(/px$/, ''));
 }

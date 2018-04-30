@@ -12,11 +12,13 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "@types/jest": "^22.2.3",
     "@types/jest-environment-puppeteer": "^2.2.0",
+    "@types/jest": "^22.2.3",
     "@types/jsdom": "^11.0.4",
     "@types/memory-fs": "^0.3.0",
     "@types/puppeteer": "^1.2.3",
+    "@types/uuid": "^3.4.3",
+    "@types/webpack": "^4.1.4",
     "@types/xmldom": "^0.1.29",
     "jest": "^22.4.3",
     "jest-environment-node": "^22.4.3",
@@ -29,6 +31,7 @@
     "ts-loader": "^4.2.0",
     "tslint": "^5.9.1",
     "typescript": "^2.8.3",
+    "uuid": "^3.2.1",
     "webpack": "^4.6.0",
     "xmldom": "^0.1.27"
   },
@@ -46,8 +49,5 @@
       "json",
       "node"
     ]
-  },
-  "dependencies": {
-    "@types/webpack": "^4.1.4"
   }
 }
