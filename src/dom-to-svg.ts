@@ -127,6 +127,7 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
       container.setAttribute("x", String(parent.offsetLeft));
       container.setAttribute("y", String(parent.offsetTop));
 
+      container.style.fill = styles.getPropertyValue("color");
       container.style.fontFamily = styles.getPropertyValue("font-family");
       container.style.fontSize = styles.getPropertyValue("font-size");
       container.style.fontWeight = styles.getPropertyValue("font-weight");
