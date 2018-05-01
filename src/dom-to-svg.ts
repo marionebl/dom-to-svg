@@ -1,5 +1,14 @@
 // import { matchText } from './match-text';
+import uuidv4 from "uuid/v4";
 import { NodeType } from "./node";
+import {
+  BackgroundPositionType,
+  BackgroundSizeType,
+  BackgroundType,
+  parseBackgroundImage,
+  parseBackgroundPosition,
+  parseBackgroundSize
+} from "./parse-background-image";
 
 export interface BrowserContext {
   document: Document;
@@ -10,6 +19,7 @@ export interface Context {
   document: Document;
   element?: HTMLElement;
   svg?: HTMLElement;
+  defs?: HTMLElement;
   window: Window;
 }
 
@@ -44,6 +54,11 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
 
     svg.appendChild(bg);
     context.svg = svg;
+  }
+
+  if (!context.defs) {
+    context.defs = document.createElement("defs");
+    context.svg.appendChild(context.defs);
   }
 
   context.element = context.element || context.svg;
@@ -110,7 +125,99 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
         background.setAttribute("id", `${name}-background`);
         background.setAttribute("data-background", name);
 
-        if (styles.getPropertyValue("border-top-color") !== "transparent" && styles.getPropertyValue("border-top-width") !== "0px") {
+        const backgroundImage = parseBackgroundImage(styles.getPropertyValue("background-image"));
+        const backgroundSize = parseBackgroundSize(styles.getPropertyValue("background-size"));
+        const backgroundPosition = parseBackgroundPosition(
+          styles.getPropertyValue("background-position")
+        );
+
+        if (
+          backgroundImage.type === BackgroundType.Image &&
+          backgroundSize.type === BackgroundSizeType.Parsed &&
+          backgroundPosition.type === BackgroundPositionType.Parsed
+        ) {
+          const id = `background-image-${uuidv4()}`;
+          const pattern = document.createElement("pattern");
+          pattern.setAttribute("width", String(backgroundSize.width));
+          pattern.setAttribute("height", String(backgroundSize.height));
+          pattern.setAttribute("patternUnits", "userSpaceOnUse");
+          pattern.setAttribute("id", id);
+
+          const image = document.createElement("image");
+          image.setAttribute("width", String(backgroundSize.width));
+          image.setAttribute("height", String(backgroundSize.height));
+          image.setAttribute("x", String(backgroundPosition.left));
+          image.setAttribute("y", String(backgroundPosition.top));
+          image.setAttributeNS("xlink", "href", backgroundImage.value);
+
+          pattern.appendChild(image);
+
+          context.defs.appendChild(pattern);
+          background.setAttribute("fill", `url(#${id})`);
+        }
+
+        if (
+          backgroundImage.type === BackgroundType.LinearGradient
+        ) {
+          const id = uuidv4();
+          const backgroundId = `background-image-${id}`;
+          const pattern = document.createElement("pattern");
+
+          if (backgroundSize.type === BackgroundSizeType.Parsed) {
+            pattern.setAttribute("width", String(backgroundSize.width));
+            pattern.setAttribute("height", String(backgroundSize.height));
+            pattern.setAttribute("patternUnits", "userSpaceOnUse");
+          } else {
+            pattern.setAttribute("width", "1");
+            pattern.setAttribute("height", "1");
+            pattern.setAttribute("patternUnits", "objectBoundingBox");
+          }
+
+          pattern.setAttribute("id", backgroundId);
+
+          const gradientId = `linear-graident-${id}`;
+          const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+          gradient.id = gradientId;
+
+          if (backgroundImage.value) {
+            backgroundImage.value.stops.forEach((stop, index, stops) => {
+              const stopElement = document.createElement("stop");
+              stopElement.setAttribute("stop-color", stop);
+              stopElement.setAttribute("offset", `${String((100 / stops.length) * index)}%`);
+              gradient.appendChild(stopElement);
+            });
+          }
+
+          const bg = document.createElement("rect");
+
+          if (backgroundSize.type === BackgroundSizeType.Parsed) {
+            bg.setAttribute("width", String(backgroundSize.width));
+            bg.setAttribute("height", String(backgroundSize.height));
+          } else {
+            bg.setAttribute("width", "1");
+            bg.setAttribute("height", "1");
+          }
+
+          if (backgroundPosition.type === BackgroundPositionType.Parsed) {
+            bg.setAttribute("x", String(backgroundPosition.left));
+            bg.setAttribute("y", String(backgroundPosition.top));
+          } else {
+            bg.setAttribute("x", "0");
+            bg.setAttribute("y", "0");
+          }
+
+          bg.setAttribute("fill", `url(#${gradientId})`);
+
+          pattern.appendChild(bg);
+          context.defs.appendChild(gradient);
+          context.defs.appendChild(pattern);
+          background.setAttribute("fill", `url(#${gradientId})`);
+        }
+
+        if (
+          styles.getPropertyValue("border-top-color") !== "transparent" &&
+          styles.getPropertyValue("border-top-width") !== "0px"
+        ) {
           const borderTop = document.createElement("line");
           borderTop.setAttribute("stroke", styles.getPropertyValue("border-top-color"));
           borderTop.setAttribute("stroke-width", styles.getPropertyValue("border-top-width"));
@@ -121,7 +228,10 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
           group.appendChild(borderTop);
         }
 
-        if (styles.getPropertyValue("border-right-color") !== "transparent" && styles.getPropertyValue("border-right-width") !== "0px") {
+        if (
+          styles.getPropertyValue("border-right-color") !== "transparent" &&
+          styles.getPropertyValue("border-right-width") !== "0px"
+        ) {
           const borderRight = document.createElement("line");
           borderRight.setAttribute("stroke", styles.getPropertyValue("border-right-color"));
           borderRight.setAttribute("stroke-width", styles.getPropertyValue("border-right-width"));
@@ -132,7 +242,10 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
           group.appendChild(borderRight);
         }
 
-        if (styles.getPropertyValue("border-bottom-color") !== "transparent" && styles.getPropertyValue("border-bottom-width") !== "0px") {
+        if (
+          styles.getPropertyValue("border-bottom-color") !== "transparent" &&
+          styles.getPropertyValue("border-bottom-width") !== "0px"
+        ) {
           const borderBottom = document.createElement("line");
           borderBottom.setAttribute("stroke", styles.getPropertyValue("border-bottom-color"));
           borderBottom.setAttribute("stroke-width", styles.getPropertyValue("border-bottom-width"));
@@ -143,7 +256,10 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
           group.appendChild(borderBottom);
         }
 
-        if (styles.getPropertyValue("border-left-color") !== "transparent" && styles.getPropertyValue("border-left-width") !== "0px") {
+        if (
+          styles.getPropertyValue("border-left-color") !== "transparent" &&
+          styles.getPropertyValue("border-left-width") !== "0px"
+        ) {
           const borderLeft = document.createElement("line");
           borderLeft.setAttribute("stroke", styles.getPropertyValue("border-left-color"));
           borderLeft.setAttribute("stroke-width", styles.getPropertyValue("border-left-width"));
@@ -226,25 +342,28 @@ function getLines(node: Node): Line[] {
 
   const lines: Line[] = [];
 
-  range.toString().split(" ").forEach(word => {
-    const wordRange = document.createRange();
-    wordRange.setStart(node, index);
-    wordRange.setEnd(node, index + word.length);
-    index += word.length;
-    const rect = wordRange.getBoundingClientRect();
+  range
+    .toString()
+    .split(" ")
+    .forEach(word => {
+      const wordRange = document.createRange();
+      wordRange.setStart(node, index);
+      wordRange.setEnd(node, index + word.length);
+      index += word.length;
+      const rect = wordRange.getBoundingClientRect();
 
-    const line = lines[lines.length - 1];
+      const line = lines[lines.length - 1];
 
-    if (!line || rect.top > line.rect.top) {
-      lines.push({ text: word, rect });
-    } else {
-      line.text += ` ${word}`;
-    }
-  });
+      if (!line || rect.top > line.rect.top) {
+        lines.push({ text: word, rect });
+      } else {
+        line.text += ` ${word}`;
+      }
+    });
 
   return lines;
 }
 
 function cssValueToNumber(raw: string): number {
-  return parseFloat(raw.replace(/px$/, ''));
+  return parseFloat(raw.replace(/px$/, ""));
 }

@@ -168,7 +168,8 @@ test("google.com", async () => {
   await page.goto("https://google.com");
   await page.setViewport({
     width: 1024,
-    height: 600
+    height: 600,
+    deviceScaleFactor: 2
   });
 
   await page.addScriptTag({
