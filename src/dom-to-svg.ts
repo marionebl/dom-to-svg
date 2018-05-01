@@ -19,6 +19,8 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
   if (!context.svg) {
     const element = node as HTMLElement;
     const svg = document.createElement("svg");
+    svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    svg.setAttributeNS("xmlns", "xlink", "http://www.w3.org/1999/xlink");
 
     const width = element.clientWidth;
     const height = element.clientHeight;
@@ -51,8 +53,31 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
       const inputElement = node as HTMLElement;
       const rect = inputElement.getBoundingClientRect();
       const styles = window.getComputedStyle(inputElement);
+      const tagName = inputElement.tagName.toLowerCase();
 
       if (styles.getPropertyValue("display") === "none") {
+        break;
+      }
+
+      if (tagName === "img") {
+        const inputImage = inputElement as HTMLImageElement;
+        const image = document.createElement("image");
+
+        const canvas = document.createElement("canvas");
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+
+        const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+        ctx.drawImage(inputImage, 0, 0, rect.width, rect.height);
+
+        image.setAttribute("id", "img");
+        image.setAttribute("x", String(rect.left));
+        image.setAttribute("y", String(rect.top));
+        image.setAttribute("width", String(rect.width));
+        image.setAttribute("height", String(rect.height));
+        image.setAttributeNS("xlink", "href", canvas.toDataURL());
+
+        context.element.appendChild(image);
         break;
       }
 
@@ -85,6 +110,7 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
       }
 
       walk(node, n => domToSvg(n, context));
+
       break;
     }
     case NodeType.TEXT_NODE: {

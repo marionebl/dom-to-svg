@@ -1,6 +1,8 @@
-import { DOMParser } from 'xmldom';
-import { domToSvg } from './dom-to-svg';
-import { bundle, browser } from './utils';
+import * as Fs from "fs";
+import * as Util from "util";
+import { DOMParser } from "xmldom";
+import { domToSvg } from "./dom-to-svg";
+import { bundle, browser } from "./utils";
 
 declare global {
   interface Window {
@@ -11,7 +13,7 @@ declare global {
 }
 
 beforeAll(async () => {
-  page.on('console', msg => console.log(msg.text()));
+  page.on("console", msg => console.log(msg.text()));
 
   await page.addScriptTag({
     content: await bundle()
@@ -25,92 +27,91 @@ afterAll(async () => {
   }
 });
 
-test('produces svg element for basic dom', async () => {
+test("produces svg element for basic dom", async () => {
   const result = await browser<string>(async el => {
-    const {domToSvg: toSvg} = window.DomToSvg;
-    el.innerHTML = '<h1>Hello World</h1>';
+    const { domToSvg: toSvg } = window.DomToSvg;
+    el.innerHTML = "<h1>Hello World</h1>";
 
-    const svg = toSvg(el, {document, window})
+    const svg = toSvg(el, { document, window });
     el.appendChild(svg);
     return svg.outerHTML;
   });
 
-  const svg = new DOMParser().parseFromString(result, 'image/svg');
-  expect(svg.documentElement.tagName).toBe('svg');
+  const svg = new DOMParser().parseFromString(result, "image/svg");
+  expect(svg.documentElement.tagName).toBe("svg");
 });
 
-test('contains expected text for html input', async () => {
+test("contains expected text for html input", async () => {
   const result = await browser<string>(async el => {
-    const {domToSvg: toSvg} = window.DomToSvg;
+    const { domToSvg: toSvg } = window.DomToSvg;
     el.innerHTML = `
       <h1>Hello World</h1>
       <p>Lorem ipsum <span>dolor si amnet</span></p>
     `;
 
-    const svg = toSvg(el, {document, window})
+    const svg = toSvg(el, { document, window });
     el.appendChild(svg);
     return svg.outerHTML;
   });
 
-  const svg = new DOMParser().parseFromString(result, 'image/svg');
-  const texts = Array.from(svg.getElementsByTagName('text')).map(node => node.textContent);
+  const svg = new DOMParser().parseFromString(result, "image/svg");
+  const texts = Array.from(svg.getElementsByTagName("text")).map(node => node.textContent);
 
-  expect(texts).toEqual(expect.arrayContaining(['Hello World', 'Lorem ipsum ', 'dolor si amnet']));
+  expect(texts).toEqual(expect.arrayContaining(["Hello World", "Lorem ipsum ", "dolor si amnet"]));
 });
 
-test('renders svg in default size of 800x600', async () => {
+test("renders svg in default size of 800x600", async () => {
   const result = await browser<string>(async el => {
-    const {domToSvg: toSvg} = window.DomToSvg;
-    el.innerHTML = '<h1>Hello World</h1>';
+    const { domToSvg: toSvg } = window.DomToSvg;
+    el.innerHTML = "<h1>Hello World</h1>";
 
-
-    const svg = toSvg(el, {document, window});
+    const svg = toSvg(el, { document, window });
     el.appendChild(svg);
     return svg.outerHTML;
   });
 
-  const svg = new DOMParser().parseFromString(result, 'image/svg');
+  const svg = new DOMParser().parseFromString(result, "image/svg");
 
   expect(svg.documentElement).not.toBe(null);
   expect(svg.documentElement.getAttribute("width")).toBe("800");
   expect(svg.documentElement.getAttribute("height")).toBe("600");
 });
 
-test('renders document with white background', async () => {
+test("renders document with white background", async () => {
   const background = await browser<string>(async el => {
-    const {domToSvg: toSvg} = window.DomToSvg;
+    const { domToSvg: toSvg } = window.DomToSvg;
 
-    const svg = toSvg(el, {document, window});
+    const svg = toSvg(el, { document, window });
     el.appendChild(svg);
-    const background = svg.querySelector("[data-background=\"document\"]");
+    const background = svg.querySelector('[data-background="document"]');
 
     const bg = background as HTMLElement;
     return bg.getAttribute("fill") || "";
   });
 
-  expect(background).toBe('rgb(255, 255, 255)');
+  expect(background).toBe("rgb(255, 255, 255)");
 });
 
-test('renders set body background color', async () => {
+test("renders set body background color", async () => {
   const background = await browser<string>(async el => {
-    const {domToSvg: toSvg} = window.DomToSvg;
+    const { domToSvg: toSvg } = window.DomToSvg;
     el.style.backgroundColor = "palevioletred";
 
-    const svg = toSvg(el, {document, window});
+    const svg = toSvg(el, { document, window });
     el.appendChild(svg);
 
-    const background = svg.querySelector("[data-background=\"div\"]");
+    const background = svg.querySelector('[data-background="div"]');
     const bg = background as HTMLElement;
 
     return bg.getAttribute("fill") || "";
   });
 
-  expect(background).toBe('rgb(219, 112, 147)');
+  expect(background).toBe("rgb(219, 112, 147)");
 });
 
-test('skips elements with display: none', async () => {
+test("skips elements with display: none", async () => {
   const result = await browser<string>(async el => {
-    const {domToSvg: toSvg} = window.DomToSvg;
+    const { domToSvg: toSvg } = window.DomToSvg;
 
     const hidden = document.createElement("div");
     hidden.textContent = "Should be skipped";
@@ -122,7 +123,7 @@ test('skips elements with display: none', async () => {
     el.appendChild(hidden);
     el.appendChild(element);
 
-    const svg = toSvg(el, {document, window});
+    const svg = toSvg(el, { document, window });
     el.appendChild(svg);
 
     const skippableElement = svg.querySelector("#div text");
@@ -132,9 +133,9 @@ test('skips elements with display: none', async () => {
   expect(result).toBe("Should not be skipped");
 });
 
-test('render elements with offset parents correctly', async () => {
-  const position = await browser<{top: number, left: number}>(async el => {
-    const {domToSvg: toSvg} = window.DomToSvg;
+test("render elements with offset parents correctly", async () => {
+  const position = await browser<{ top: number; left: number }>(async el => {
+    const { domToSvg: toSvg } = window.DomToSvg;
 
     const offsetParent = document.createElement("div");
     offsetParent.style.position = "relative";
@@ -150,7 +151,7 @@ test('render elements with offset parents correctly', async () => {
     offsetParent.appendChild(element);
     el.appendChild(offsetParent);
 
-    const svg = toSvg(el, {document, window});
+    const svg = toSvg(el, { document, window });
     const main = svg.querySelector("#main-background") as HTMLElement;
 
     return {
@@ -161,4 +162,28 @@ test('render elements with offset parents correctly', async () => {
 
   expect(position.top).toBe(150);
   expect(position.left).toBe(150);
-})
+});
+
+test("google.com", async () => {
+  await page.goto("https://google.com");
+  await page.setViewport({
+    width: 1024,
+    height: 600
+  });
+
+  await page.addScriptTag({
+    content: await bundle()
+  });
+
+  await page.screenshot({
+    path: "screenshots/google.com.png"
+  });
+
+  const svg = await page.evaluate(async () => {
+    const { domToSvg: toSvg } = window.DomToSvg;
+    return toSvg(document.documentElement, { window, document }).outerHTML;
+  });
+
+  const writeFile = Util.promisify(Fs.writeFile);
+  await writeFile("screenshots/google.com.svg", svg);
+});
