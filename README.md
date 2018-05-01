@@ -21,4 +21,4 @@ yarn start
 
 ## License
 
-`dom-to-svg` is licensed under the MIT license. Copyright 2018 - preset Mario Nebl.
+`dom-to-svg` is licensed under the MIT license. Copyright 2018 - present Mario Nebl.
