@@ -131,3 +131,34 @@ test('skips elements with display: none', async () => {
 
   expect(result).toBe("Should not be skipped");
 });
+
+test('render elements with offset parents correctly', async () => {
+  const position = await browser<{top: number, left: number}>(async el => {
+    const {domToSvg: toSvg} = window.DomToSvg;
+
+    const offsetParent = document.createElement("div");
+    offsetParent.style.position = "relative";
+    offsetParent.style.marginTop = "100px";
+    offsetParent.style.marginLeft = "50px";
+
+    const element = document.createElement("main");
+    element.style.position = "absolute";
+    element.style.top = "50px";
+    element.style.left = "100px";
+    element.textContent = "Hello World";
+
+    offsetParent.appendChild(element);
+    el.appendChild(offsetParent);
+
+    const svg = toSvg(el, {document, window});
+    const main = svg.querySelector("#main-background") as HTMLElement;
+
+    return {
+      top: parseFloat(main.getAttribute("x") || "0"),
+      left: parseFloat(main.getAttribute("y") || "0")
+    };
+  });
+
+  expect(position.top).toBe(150);
+  expect(position.left).toBe(150);
+})

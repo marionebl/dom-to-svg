@@ -71,8 +71,8 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
         background.setAttribute("width", String(rect.width));
         background.setAttribute("height", String(rect.height));
 
-        background.setAttribute("x", String(inputElement.offsetLeft));
-        background.setAttribute("y", String(inputElement.offsetTop));
+        background.setAttribute("x", String(rect.left));
+        background.setAttribute("y", String(rect.top));
 
         const backgroundColor = styles.backgroundColor || "rgba(0, 0, 0, 0)";
 
