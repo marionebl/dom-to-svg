@@ -55,7 +55,11 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
       const styles = window.getComputedStyle(inputElement);
       const tagName = inputElement.tagName.toLowerCase();
 
-      if (styles.getPropertyValue("display") === "none") {
+      if (
+        styles.getPropertyValue("display") === "none" ||
+        styles.getPropertyValue("opacity") === "0" ||
+        styles.getPropertyPriority("visibility") === "hidden"
+      ) {
         break;
       }
 
@@ -105,6 +109,50 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
 
         background.setAttribute("id", `${name}-background`);
         background.setAttribute("data-background", name);
+
+        if (styles.getPropertyValue("border-top-color") !== "transparent" && styles.getPropertyValue("border-top-width") !== "0px") {
+          const borderTop = document.createElement("line");
+          borderTop.setAttribute("stroke", styles.getPropertyValue("border-top-color"));
+          borderTop.setAttribute("stroke-width", styles.getPropertyValue("border-top-width"));
+          borderTop.setAttribute("x1", String(rect.left));
+          borderTop.setAttribute("x2", String(rect.left + rect.width));
+          borderTop.setAttribute("y1", String(rect.top));
+          borderTop.setAttribute("y2", String(rect.top));
+          group.appendChild(borderTop);
+        }
+
+        if (styles.getPropertyValue("border-right-color") !== "transparent" && styles.getPropertyValue("border-right-width") !== "0px") {
+          const borderRight = document.createElement("line");
+          borderRight.setAttribute("stroke", styles.getPropertyValue("border-right-color"));
+          borderRight.setAttribute("stroke-width", styles.getPropertyValue("border-right-width"));
+          borderRight.setAttribute("x1", String(rect.left + rect.width));
+          borderRight.setAttribute("x2", String(rect.left + rect.width));
+          borderRight.setAttribute("y1", String(rect.top));
+          borderRight.setAttribute("y2", String(rect.top + rect.height));
+          group.appendChild(borderRight);
+        }
+
+        if (styles.getPropertyValue("border-bottom-color") !== "transparent" && styles.getPropertyValue("border-bottom-width") !== "0px") {
+          const borderBottom = document.createElement("line");
+          borderBottom.setAttribute("stroke", styles.getPropertyValue("border-bottom-color"));
+          borderBottom.setAttribute("stroke-width", styles.getPropertyValue("border-bottom-width"));
+          borderBottom.setAttribute("x1", String(rect.left + rect.width));
+          borderBottom.setAttribute("x2", String(rect.left));
+          borderBottom.setAttribute("y1", String(rect.top + rect.height));
+          borderBottom.setAttribute("y2", String(rect.top + rect.height));
+          group.appendChild(borderBottom);
+        }
+
+        if (styles.getPropertyValue("border-left-color") !== "transparent" && styles.getPropertyValue("border-left-width") !== "0px") {
+          const borderLeft = document.createElement("line");
+          borderLeft.setAttribute("stroke", styles.getPropertyValue("border-left-color"));
+          borderLeft.setAttribute("stroke-width", styles.getPropertyValue("border-left-width"));
+          borderLeft.setAttribute("x1", String(rect.left));
+          borderLeft.setAttribute("x2", String(rect.left));
+          borderLeft.setAttribute("y1", String(rect.top + rect.height));
+          borderLeft.setAttribute("y2", String(rect.top));
+          group.appendChild(borderLeft);
+        }
 
         group.appendChild(background);
       }
