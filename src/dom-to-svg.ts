@@ -52,6 +52,10 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
       const rect = inputElement.getBoundingClientRect();
       const styles = window.getComputedStyle(inputElement);
 
+      if (styles.getPropertyValue("display") === "none") {
+        break;
+      }
+
       const group = document.createElement("g");
       const name = inputElement.tagName.toLowerCase();
 

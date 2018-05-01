@@ -107,3 +107,27 @@ test('renders set body background color', async () => {
 
   expect(background).toBe('rgb(219, 112, 147)');
 });
+
+test('skips elements with display: none', async () => {
+  const result = await browser<string>(async el => {
+    const {domToSvg: toSvg} = window.DomToSvg;
+
+    const hidden = document.createElement("div");
+    hidden.textContent = "Should be skipped";
+    hidden.style.display = "none";
+
+    const element = document.createElement("div");
+    element.textContent = "Should not be skipped";
+
+    el.appendChild(hidden);
+    el.appendChild(element);
+
+    const svg = toSvg(el, {document, window});
+    el.appendChild(svg);
+
+    const skippableElement = svg.querySelector("#div text");
+    return skippableElement ? skippableElement.textContent || "" : "";
+  });
+
+  expect(result).toBe("Should not be skipped");
+});
