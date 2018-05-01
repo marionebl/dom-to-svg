@@ -18,11 +18,21 @@ beforeAll(async () => {
   });
 });
 
+afterAll(async () => {
+  if (process.env.NODE_DEBUG === "dom-to-svg") {
+    const html = await page.evaluate(() => new XMLSerializer().serializeToString(document.body));
+    console.log(html);
+  }
+});
+
 test('produces svg element for basic dom', async () => {
   const result = await browser<string>(async el => {
     const {domToSvg: toSvg} = window.DomToSvg;
     el.innerHTML = '<h1>Hello World</h1>';
-    return toSvg(el, {document, window}).outerHTML;
+
+    const svg = toSvg(el, {document, window})
+    el.appendChild(svg);
+    return svg.outerHTML;
   });
 
   const svg = new DOMParser().parseFromString(result, 'image/svg');
@@ -36,7 +46,10 @@ test('contains expected text for html input', async () => {
       <h1>Hello World</h1>
       <p>Lorem ipsum <span>dolor si amnet</span></p>
     `;
-    return toSvg(el, {document, window}).outerHTML;
+
+    const svg = toSvg(el, {document, window})
+    el.appendChild(svg);
+    return svg.outerHTML;
   });
 
   const svg = new DOMParser().parseFromString(result, 'image/svg');
@@ -49,7 +62,11 @@ test('renders svg in default size of 800x600', async () => {
   const result = await browser<string>(async el => {
     const {domToSvg: toSvg} = window.DomToSvg;
     el.innerHTML = '<h1>Hello World</h1>';
-    return toSvg(el, {document, window}).outerHTML;
+
+
+    const svg = toSvg(el, {document, window});
+    el.appendChild(svg);
+    return svg.outerHTML;
   });
 
   const svg = new DOMParser().parseFromString(result, 'image/svg');
@@ -64,6 +81,7 @@ test('renders document with white background', async () => {
     const {domToSvg: toSvg} = window.DomToSvg;
 
     const svg = toSvg(el, {document, window});
+    el.appendChild(svg);
     const background = svg.querySelector("[data-background=\"document\"]");
 
     const bg = background as HTMLElement;
@@ -76,18 +94,16 @@ test('renders document with white background', async () => {
 test('renders set body background color', async () => {
   const background = await browser<string>(async el => {
     const {domToSvg: toSvg} = window.DomToSvg;
-    const style = document.createElement('style');
-    style.textContent = `#${el.getAttribute("id")} { background: palevioletred; }`;
-    document.head.appendChild(style);
+    el.style.backgroundColor = "palevioletred";
 
-    el.innerHTML = '<h1>Hello World</h1>';
     const svg = toSvg(el, {document, window});
+    el.appendChild(svg);
+
     const background = svg.querySelector("[data-background=\"div\"]");
     const bg = background as HTMLElement;
 
     return bg.getAttribute("fill") || "";
   });
-
 
   expect(background).toBe('rgb(219, 112, 147)');
 });

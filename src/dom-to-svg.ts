@@ -17,9 +17,11 @@ export function domToSvg(node: Node, context: Context): HTMLElement {
   const { document, window } = context;
 
   if (!context.svg) {
+    const element = node as HTMLElement;
     const svg = document.createElement("svg");
-    const width = document.body.clientWidth;
-    const height = document.body.clientHeight;
+
+    const width = element.clientWidth;
+    const height = element.clientHeight;
 
     svg.setAttribute("width", String(width));
     svg.setAttribute("height", String(height));

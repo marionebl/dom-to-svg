@@ -23,6 +23,11 @@ export async function browser<T>(cb: (el: HTMLElement) => Promise<T>): Promise<T
 
   await page.evaluate((id) => {
     const div = document.createElement("div");
+    div.style.position = "absolute";
+    div.style.top = "0";
+    div.style.left = "0";
+    div.style.width = "100%"
+    div.style.height = "100%";
     div.setAttribute("id", id);
     document.body.appendChild(div);
   }, id);
